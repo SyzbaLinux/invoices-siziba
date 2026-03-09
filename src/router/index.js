@@ -4,6 +4,12 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
+      path: '/login',
+      name: 'login',
+      component: () => import('../views/LoginView.vue'),
+      meta: { public: true },
+    },
+    {
       path: '/',
       redirect: '/dashboard',
     },
@@ -58,6 +64,18 @@ const router = createRouter({
       component: () => import('../views/SettingsView.vue'),
     },
   ],
+})
+
+router.beforeEach((to) => {
+  const isAuthenticated = sessionStorage.getItem('authenticated') === 'true'
+
+  if (!to.meta.public && !isAuthenticated) {
+    return { name: 'login' }
+  }
+
+  if (to.name === 'login' && isAuthenticated) {
+    return { name: 'dashboard' }
+  }
 })
 
 export default router

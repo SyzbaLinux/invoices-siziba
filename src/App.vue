@@ -1,17 +1,20 @@
 <script setup>
 import { onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { RouterView } from 'vue-router'
 import AppLayout from './components/layout/AppLayout.vue'
 import { initDB } from './services/db'
 
+const route = useRoute()
+
 onMounted(async () => {
-  // Initialize IndexedDB when app starts
   await initDB()
 })
 </script>
 
 <template>
-  <AppLayout>
+  <RouterView v-if="route.meta.public" />
+  <AppLayout v-else>
     <RouterView />
   </AppLayout>
 </template>
