@@ -2,231 +2,248 @@ import { pdf, measureText } from 'tinypdf'
 import { formatCurrency, formatDate } from './formatters'
 
 /**
- * Generate invoice PDF
- * @param {Object} invoice - Invoice data
- * @param {Object} client - Client data
- * @param {Object} settings - Company settings
- * @param {Array} payments - Payment records
- * @returns {Uint8Array} PDF bytes
+ * Right-align text: calculates x so text ends at `rightEdge`
  */
-export function generateInvoicePDF(invoice, client, settings, payments = []) {
+function textRight(ctx, str, rightEdge, y, size, color = '#1f2937') {
+  const w = measureText(str, size)
+  ctx.text(str, rightEdge - w, y, size, { color })
+}
+
+/**
+ * Center text between x1 and x2
+ */
+function textCenter(ctx, str, x1, x2, y, size, color = '#1f2937') {
+  const w = measureText(str, size)
+  ctx.text(str, x1 + (x2 - x1 - w) / 2, y, size, { color })
+}
+
+/**
+ * Convert any base64 image (PNG, JPG, etc.) to JPEG Uint8Array via canvas.
+ * tinypdf only supports JPEG, so we must convert.
+ */
+function imageToJpegBytes(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width
+      canvas.height = img.height
+      const c = canvas.getContext('2d')
+      // White background (for PNG transparency)
+      c.fillStyle = '#ffffff'
+      c.fillRect(0, 0, canvas.width, canvas.height)
+      c.drawImage(img, 0, 0)
+      const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.92)
+      const base64 = jpegDataUrl.split(',')[1]
+      resolve(base64ToUint8Array(base64))
+    }
+    img.onerror = () => reject(new Error('Failed to load logo image'))
+    img.src = dataUrl
+  })
+}
+
+/**
+ * Generate invoice PDF
+ */
+export async function generateInvoicePDF(invoice, client, settings, payments = []) {
+  // Pre-convert logo to JPEG bytes
+  let logoBytes = null
+  if (settings.logo && settings.logo.startsWith('data:image/')) {
+    try {
+      logoBytes = await imageToJpegBytes(settings.logo)
+    } catch (err) {
+      console.warn('Could not convert logo:', err)
+    }
+  }
+
   const doc = pdf()
 
   doc.page((ctx) => {
-    const pageWidth = 612
-    const pageHeight = 792
+    const pw = 612 // page width
     const margin = 50
-    let y = pageHeight - 50 // Start from top
+    const right = pw - margin
+    const cw = right - margin // content width
+    let y = 742 // start from top
 
-    // Company logo (if available and base64)
-    if (settings.logo && settings.logo.startsWith('data:image/jpeg;base64,')) {
+    // ── Header: INVOICE + info left, logo right ──
+    ctx.text('INVOICE', margin, y, 28, { color: '#1f2937' })
+
+    if (logoBytes) {
       try {
-        const base64Data = settings.logo.split(',')[1]
-        const logoBytes = base64ToUint8Array(base64Data)
-        ctx.image(logoBytes, margin, y - 60, 100, 50)
+        ctx.image(logoBytes, right - 80, y - 5, 80, 35)
       } catch (err) {
-        console.warn('Could not load logo:', err)
+        console.warn('Could not embed logo:', err)
       }
     }
 
-    // Company info (top right)
-    y -= 10
+    y -= 34
+
+    ctx.text(`#${invoice.invoice_number}`, margin, y, 12, { color: '#1f2937' })
+    y -= 18
+
+    ctx.text(`Date: ${formatDate(invoice.date)}`, margin, y, 10, { color: '#6b7280' })
+    y -= 14
+    if (invoice.due_date) {
+      ctx.text(`Due Date: ${formatDate(invoice.due_date)}`, margin, y, 10, { color: '#6b7280' })
+      y -= 14
+    }
+
+    // ── Separator ──
+    y -= 6
+    ctx.line(margin, y, right, y, '#d1d5db', 0.75)
+    y -= 18
+
+    // ── Addresses side-by-side ──
+    const midX = margin + cw / 2
+    const colRight = midX + 20
+    let ly = y // left column y
+    let ry = y // right column y
+
+    // FROM
+    ctx.text('FROM', margin, ly, 8, { color: '#9ca3af' })
+    ly -= 15
     if (settings.companyName) {
-      ctx.text(settings.companyName, pageWidth - margin, y, 14, { align: 'right', color: '#1f2937' })
-      y -= 16
-    }
-    if (settings.companyEmail) {
-      ctx.text(settings.companyEmail, pageWidth - margin, y, 10, { align: 'right', color: '#6b7280' })
-      y -= 14
-    }
-    if (settings.companyPhone) {
-      ctx.text(settings.companyPhone, pageWidth - margin, y, 10, { align: 'right', color: '#6b7280' })
-      y -= 14
+      ctx.text(settings.companyName, margin, ly, 11, { color: '#1f2937' })
+      ly -= 15
     }
     if (settings.companyAddress) {
-      ctx.text(settings.companyAddress, pageWidth - margin, y, 10, { align: 'right', color: '#6b7280' })
-      y -= 14
+      ctx.text(settings.companyAddress, margin, ly, 9, { color: '#6b7280' })
+      ly -= 13
     }
-    const cityLine = [settings.companyCity, settings.companyState, settings.companyZip]
-      .filter(Boolean)
-      .join(', ')
-    if (cityLine) {
-      ctx.text(cityLine, pageWidth - margin, y, 10, { align: 'right', color: '#6b7280' })
-      y -= 20
+    const compCity = [settings.companyCity, settings.companyState, settings.companyZip].filter(Boolean).join(', ')
+    if (compCity) {
+      ctx.text(compCity, margin, ly, 9, { color: '#6b7280' })
+      ly -= 13
     }
-
-    // Invoice title
-    y -= 30
-    ctx.text('INVOICE', margin, y, 32, { color: '#2563eb' })
-    y -= 40
-
-    // Invoice number and details
-    ctx.text(`Invoice #: ${invoice.invoice_number}`, margin, y, 11, { color: '#1f2937' })
-    y -= 18
-    ctx.text(`Date: ${formatDate(invoice.date)}`, margin, y, 11, { color: '#6b7280' })
-    y -= 18
-    if (invoice.due_date) {
-      ctx.text(`Due Date: ${formatDate(invoice.due_date)}`, margin, y, 11, { color: '#6b7280' })
-      y -= 18
+    if (settings.companyEmail) {
+      ctx.text(settings.companyEmail, margin, ly, 9, { color: '#6b7280' })
+      ly -= 13
     }
-    if (invoice.payment_terms) {
-      ctx.text(`Terms: ${invoice.payment_terms}`, margin, y, 11, { color: '#6b7280' })
-      y -= 30
+    if (settings.companyPhone) {
+      ctx.text(settings.companyPhone, margin, ly, 9, { color: '#6b7280' })
+      ly -= 13
     }
 
-    // Bill To section
-    ctx.text('Bill To:', margin, y, 12, { color: '#1f2937' })
-    y -= 20
+    // BILL TO
+    ctx.text('BILL TO', colRight, ry, 8, { color: '#9ca3af' })
+    ry -= 15
     if (client.name) {
-      ctx.text(client.name, margin, y, 11, { color: '#1f2937' })
-      y -= 16
-    }
-    if (client.email) {
-      ctx.text(client.email, margin, y, 10, { color: '#6b7280' })
-      y -= 14
-    }
-    if (client.phone) {
-      ctx.text(client.phone, margin, y, 10, { color: '#6b7280' })
-      y -= 14
+      ctx.text(client.name, colRight, ry, 11, { color: '#1f2937' })
+      ry -= 15
     }
     if (client.address) {
-      ctx.text(client.address, margin, y, 10, { color: '#6b7280' })
-      y -= 14
+      ctx.text(client.address, colRight, ry, 9, { color: '#6b7280' })
+      ry -= 13
     }
-    const clientCity = [client.city, client.state, client.zip].filter(Boolean).join(', ')
-    if (clientCity) {
-      ctx.text(clientCity, margin, y, 10, { color: '#6b7280' })
-      y -= 30
+    const cliCity = [client.city, client.state, client.zip].filter(Boolean).join(', ')
+    if (cliCity) {
+      ctx.text(cliCity, colRight, ry, 9, { color: '#6b7280' })
+      ry -= 13
+    }
+    if (client.email) {
+      ctx.text(client.email, colRight, ry, 9, { color: '#6b7280' })
+      ry -= 13
+    }
+    if (client.phone) {
+      ctx.text(client.phone, colRight, ry, 9, { color: '#6b7280' })
+      ry -= 13
     }
 
-    // Line items table header
-    const tableTop = y
-    ctx.rect(margin, y - 2, pageWidth - 2 * margin, 20, '#f3f4f6')
-    ctx.text('Description', margin + 5, y + 12, 10, { color: '#1f2937' })
-    ctx.text('Qty', pageWidth - margin - 250, y + 12, 10, { color: '#1f2937', align: 'right' })
-    ctx.text('Rate', pageWidth - margin - 170, y + 12, 10, { color: '#1f2937', align: 'right' })
-    ctx.text('Amount', pageWidth - margin - 5, y + 12, 10, { color: '#1f2937', align: 'right' })
-    y -= 25
+    y = Math.min(ly, ry) - 10
+    ctx.line(margin, y + 5, right, y + 5, '#d1d5db', 0.75)
+    y -= 5
 
-    // Line items
-    invoice.items.forEach((item, index) => {
+    // ── Table columns ──
+    const colDesc = margin + 8
+    const colQty = right - 195
+    const colRate = right - 115
+    const colAmt = right - 8
+
+    // Table header background
+    const headerH = 22
+    ctx.rect(margin, y - headerH, cw, headerH, '#f3f4f6')
+    const headerTextY = y - headerH + 7
+    ctx.text('Description', colDesc, headerTextY, 9, { color: '#6b7280' })
+    textRight(ctx, 'Qty', colQty, headerTextY, 9, '#6b7280')
+    textRight(ctx, 'Rate', colRate, headerTextY, 9, '#6b7280')
+    textRight(ctx, 'Amount', colAmt, headerTextY, 9, '#6b7280')
+    y -= headerH + 12
+
+    // ── Line items ──
+    invoice.items.forEach((item) => {
+      if (y < 130) return
+
       const lineTotal = item.quantity * item.rate
-
-      // Check if we need a new page
-      if (y < 150) {
-        doc.page((newCtx) => {
-          y = pageHeight - 50
-          drawLineItem(newCtx, item, lineTotal)
-        })
-      } else {
-        drawLineItem(ctx, item, lineTotal)
-      }
-
-      function drawLineItem(context, lineItem, total) {
-        context.text(lineItem.description, margin + 5, y, 10, {
-          color: '#374151',
-          width: 280
-        })
-        context.text(String(lineItem.quantity), pageWidth - margin - 250, y, 10, {
-          color: '#374151',
-          align: 'right'
-        })
-        context.text(formatCurrency(lineItem.rate), pageWidth - margin - 170, y, 10, {
-          color: '#374151',
-          align: 'right'
-        })
-        context.text(formatCurrency(total), pageWidth - margin - 5, y, 10, {
-          color: '#374151',
-          align: 'right'
-        })
-        y -= 20
-      }
+      ctx.text(item.description || '', colDesc, y, 9, { color: '#374151' })
+      textRight(ctx, String(item.quantity), colQty, y, 9, '#374151')
+      textRight(ctx, formatCurrency(item.rate), colRate, y, 9, '#374151')
+      textRight(ctx, formatCurrency(lineTotal), colAmt, y, 9, '#374151')
+      y -= 18
     })
 
-    // Separator line
-    y -= 10
-    ctx.line(margin, y, pageWidth - margin, y, '#e5e7eb', 1)
-    y -= 25
-
-    // Totals section
-    const totalsX = pageWidth - margin - 150
-    ctx.text('Subtotal:', totalsX, y, 10, { color: '#6b7280' })
-    ctx.text(formatCurrency(invoice.subtotal), pageWidth - margin - 5, y, 10, {
-      color: '#1f2937',
-      align: 'right'
-    })
+    // ── Separator ──
+    y -= 4
+    ctx.line(margin, y, right, y, '#d1d5db', 0.75)
     y -= 18
 
-    ctx.text(`Tax (${invoice.tax_rate}%):`, totalsX, y, 10, { color: '#6b7280' })
-    ctx.text(formatCurrency(invoice.tax), pageWidth - margin - 5, y, 10, {
-      color: '#1f2937',
-      align: 'right'
-    })
-    y -= 18
+    // ── Totals ──
+    const labelX = right - 155
+    const valX = right - 8
 
-    // Total line
-    ctx.line(totalsX, y + 5, pageWidth - margin, y + 5, '#1f2937', 1)
-    y -= 10
+    ctx.text('Subtotal', labelX, y, 9, { color: '#6b7280' })
+    textRight(ctx, formatCurrency(invoice.subtotal), valX, y, 9, '#374151')
+    y -= 16
 
-    ctx.text('Total:', totalsX, y, 14, { color: '#1f2937' })
-    ctx.text(formatCurrency(invoice.total), pageWidth - margin - 5, y, 14, {
-      color: '#2563eb',
-      align: 'right'
-    })
-    y -= 25
+    ctx.text(`Tax (${invoice.tax_rate}%)`, labelX, y, 9, { color: '#6b7280' })
+    textRight(ctx, formatCurrency(invoice.tax), valX, y, 9, '#374151')
+    y -= 16
 
-    // Balance due (if there are payments)
+    ctx.line(labelX, y + 4, right, y + 4, '#1f2937', 0.75)
+    y -= 14
+
+    ctx.text('Total', labelX, y, 13, { color: '#1f2937' })
+    textRight(ctx, formatCurrency(invoice.total), valX, y, 13, '#1f2937')
+    y -= 22
+
+    // ── Balance due ──
     if (payments && payments.length > 0) {
       const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0)
-      const balance = invoice.total - totalPaid
+      const bal = invoice.total - totalPaid
 
-      ctx.text('Paid:', totalsX, y, 10, { color: '#6b7280' })
-      ctx.text(formatCurrency(totalPaid), pageWidth - margin - 5, y, 10, {
-        color: '#059669',
-        align: 'right'
-      })
-      y -= 18
+      ctx.text('Paid', labelX, y, 9, { color: '#6b7280' })
+      textRight(ctx, formatCurrency(totalPaid), valX, y, 9, '#059669')
+      y -= 16
 
-      ctx.text('Balance Due:', totalsX, y, 11, { color: '#1f2937' })
-      ctx.text(formatCurrency(balance), pageWidth - margin - 5, y, 11, {
-        color: balance > 0 ? '#dc2626' : '#059669',
-        align: 'right'
-      })
-      y -= 30
+      ctx.text('Balance Due', labelX, y, 11, { color: '#1f2937' })
+      textRight(ctx, formatCurrency(bal), valX, y, 11, bal > 0 ? '#dc2626' : '#059669')
+      y -= 24
     }
 
-    // Notes
-    if (invoice.notes) {
-      y -= 20
-      ctx.text('Notes:', margin, y, 11, { color: '#1f2937' })
-      y -= 18
-
-      // Word wrap notes
+    // ── Notes ──
+    if (invoice.notes && y > 80) {
+      y -= 6
+      ctx.text('Notes', margin, y, 10, { color: '#1f2937' })
+      y -= 16
       const words = invoice.notes.split(' ')
       let line = ''
-      words.forEach(word => {
+      words.forEach((word) => {
         const testLine = line + word + ' '
-        const width = measureText(testLine, 10)
-        if (width > pageWidth - 2 * margin && line !== '') {
-          ctx.text(line, margin, y, 10, { color: '#6b7280' })
-          y -= 14
+        if (measureText(testLine, 9) > cw && line !== '') {
+          ctx.text(line.trim(), margin, y, 9, { color: '#6b7280' })
+          y -= 13
           line = word + ' '
         } else {
           line = testLine
         }
       })
-      if (line) {
-        ctx.text(line, margin, y, 10, { color: '#6b7280' })
+      if (line.trim()) {
+        ctx.text(line.trim(), margin, y, 9, { color: '#6b7280' })
       }
     }
 
-    // Footer
-    const footerY = 40
-    ctx.line(margin, footerY + 10, pageWidth - margin, footerY + 10, '#e5e7eb', 1)
-    ctx.text('Thank you for your business!', pageWidth / 2, footerY, 10, {
-      color: '#6b7280',
-      align: 'center'
-    })
+    // ── Footer ──
+    ctx.line(margin, 52, right, 52, '#e5e7eb', 0.5)
+    textCenter(ctx, 'Thank you for your business!', margin, right, 40, 9, '#6b7280')
   })
 
   return doc.build()
@@ -234,177 +251,150 @@ export function generateInvoicePDF(invoice, client, settings, payments = []) {
 
 /**
  * Generate statement PDF for a client
- * @param {Object} client - Client data
- * @param {Array} invoices - Client's invoices
- * @param {Object} settings - Company settings
- * @param {Array} payments - Payment records
- * @returns {Uint8Array} PDF bytes
  */
-export function generateStatementPDF(client, invoices, settings, payments = []) {
+export async function generateStatementPDF(client, invoices, settings, payments = []) {
+  let logoBytes = null
+  if (settings.logo && settings.logo.startsWith('data:image/')) {
+    try {
+      logoBytes = await imageToJpegBytes(settings.logo)
+    } catch (err) {
+      console.warn('Could not convert logo:', err)
+    }
+  }
+
   const doc = pdf()
 
   doc.page((ctx) => {
-    const pageWidth = 612
-    const pageHeight = 792
+    const pw = 612
     const margin = 50
-    let y = pageHeight - 50
+    const right = pw - margin
+    const cw = right - margin
+    let y = 742
 
-    // Company logo (top right, if available)
-    if (settings.logo && settings.logo.startsWith('data:image/jpeg;base64,')) {
+    // ── Header ──
+    ctx.text('PAYMENT STATEMENT', margin, y, 22, { color: '#1f2937' })
+
+    if (logoBytes) {
       try {
-        const base64Data = settings.logo.split(',')[1]
-        const logoBytes = base64ToUint8Array(base64Data)
-        ctx.image(logoBytes, pageWidth - margin - 100, y - 40, 100, 40)
+        ctx.image(logoBytes, right - 80, y - 5, 80, 35)
       } catch (err) {
-        console.warn('Could not load logo:', err)
+        console.warn('Could not embed logo:', err)
       }
     }
 
-    // Company info (top right)
-    let companyY = y - 50
-    if (settings.companyName) {
-      ctx.text(settings.companyName, pageWidth - margin, companyY, 12, { align: 'right', color: '#1f2937' })
-      companyY -= 14
-    }
-    if (settings.companyEmail) {
-      ctx.text(settings.companyEmail, pageWidth - margin, companyY, 10, { align: 'right', color: '#6b7280' })
-      companyY -= 12
-    }
-    if (settings.companyPhone) {
-      ctx.text(settings.companyPhone, pageWidth - margin, companyY, 10, { align: 'right', color: '#6b7280' })
-    }
-
-    // Header - Title
-    ctx.text('Account Statement', margin, y, 28, { color: '#1f2937' })
-    y -= 25
-    ctx.text(formatDate(new Date().toISOString()), margin, y, 11, { color: '#6b7280' })
-    y -= 40
-
-    // Client info
-    ctx.text('Client:', margin, y, 10, { color: '#6b7280' })
     y -= 18
-    ctx.text(client.name, margin, y, 14, { color: '#1f2937' })
+    ctx.text(formatDate(new Date().toISOString()), margin, y, 10, { color: '#6b7280' })
+    y -= 14
+    ctx.line(margin, y, right, y, '#d1d5db', 0.75)
     y -= 18
-    if (client.email) {
-      ctx.text(client.email, margin, y, 10, { color: '#374151' })
-      y -= 14
-    }
-    if (client.phone) {
-      ctx.text(client.phone, margin, y, 10, { color: '#374151' })
-      y -= 14
-    }
-    if (client.address) {
-      ctx.text(client.address, margin, y, 10, { color: '#374151' })
-      y -= 14
-    }
-    const clientCity = [client.city, client.state, client.zip].filter(Boolean).join(', ')
-    if (clientCity) {
-      ctx.text(clientCity, margin, y, 10, { color: '#374151' })
-      y -= 14
-    }
-    y -= 20
 
-    // Summary section
+    // ── Addresses side-by-side ──
+    const midX = margin + cw / 2
+    const colRightAddr = midX + 20
+    let ly = y
+    let ry = y
+
+    ctx.text('FROM', margin, ly, 8, { color: '#9ca3af' })
+    ly -= 15
+    if (settings.companyName) { ctx.text(settings.companyName, margin, ly, 11, { color: '#1f2937' }); ly -= 15 }
+    if (settings.companyAddress) { ctx.text(settings.companyAddress, margin, ly, 9, { color: '#6b7280' }); ly -= 13 }
+    const compCity = [settings.companyCity, settings.companyState, settings.companyZip].filter(Boolean).join(', ')
+    if (compCity) { ctx.text(compCity, margin, ly, 9, { color: '#6b7280' }); ly -= 13 }
+    if (settings.companyEmail) { ctx.text(settings.companyEmail, margin, ly, 9, { color: '#6b7280' }); ly -= 13 }
+    if (settings.companyPhone) { ctx.text(settings.companyPhone, margin, ly, 9, { color: '#6b7280' }); ly -= 13 }
+
+    ctx.text('TO', colRightAddr, ry, 8, { color: '#9ca3af' })
+    ry -= 15
+    if (client.name) { ctx.text(client.name, colRightAddr, ry, 11, { color: '#1f2937' }); ry -= 15 }
+    if (client.address) { ctx.text(client.address, colRightAddr, ry, 9, { color: '#6b7280' }); ry -= 13 }
+    const cliCity = [client.city, client.state, client.zip].filter(Boolean).join(', ')
+    if (cliCity) { ctx.text(cliCity, colRightAddr, ry, 9, { color: '#6b7280' }); ry -= 13 }
+    if (client.email) { ctx.text(client.email, colRightAddr, ry, 9, { color: '#6b7280' }); ry -= 13 }
+    if (client.phone) { ctx.text(client.phone, colRightAddr, ry, 9, { color: '#6b7280' }); ry -= 13 }
+
+    y = Math.min(ly, ry) - 14
+
+    // ── Summary ──
     const totalInvoiced = invoices.reduce((sum, inv) => sum + (inv.total || 0), 0)
     const totalPaid = payments.reduce((sum, pay) => sum + (parseFloat(pay.amount) || 0), 0)
     const balanceDue = totalInvoiced - totalPaid
 
-    ctx.rect(margin, y - 50, pageWidth - 2 * margin, 55, '#f9fafb')
+    const boxH = 48
+    ctx.rect(margin, y - boxH, cw, boxH, '#f9fafb')
+    const col3 = cw / 3
+    const sumLabelY = y - 14
+    const sumValY = y - 32
 
-    const colWidth = (pageWidth - 2 * margin) / 3
-    const summaryY = y - 15
+    textCenter(ctx, 'Total Invoiced', margin, margin + col3, sumLabelY, 9, '#6b7280')
+    textCenter(ctx, formatCurrency(totalInvoiced), margin, margin + col3, sumValY, 14, '#1f2937')
+    textCenter(ctx, 'Total Paid', margin + col3, margin + col3 * 2, sumLabelY, 9, '#6b7280')
+    textCenter(ctx, formatCurrency(totalPaid), margin + col3, margin + col3 * 2, sumValY, 14, '#2563eb')
+    textCenter(ctx, 'Balance Due', margin + col3 * 2, right, sumLabelY, 9, '#6b7280')
+    textCenter(ctx, formatCurrency(balanceDue), margin + col3 * 2, right, sumValY, 14, balanceDue > 0 ? '#dc2626' : '#059669')
 
-    // Total Invoiced
-    ctx.text('Total Invoiced', margin + colWidth / 2, summaryY, 10, { color: '#6b7280', align: 'center' })
-    ctx.text(formatCurrency(totalInvoiced), margin + colWidth / 2, summaryY - 18, 16, { color: '#1f2937', align: 'center' })
+    y -= boxH + 18
 
-    // Total Paid
-    ctx.text('Total Paid', margin + colWidth + colWidth / 2, summaryY, 10, { color: '#6b7280', align: 'center' })
-    ctx.text(formatCurrency(totalPaid), margin + colWidth + colWidth / 2, summaryY - 18, 16, { color: '#2563eb', align: 'center' })
+    // ── Invoices table ──
+    ctx.text('Invoices', margin, y, 12, { color: '#1f2937' })
+    y -= 20
 
-    // Balance Due
-    ctx.text('Balance Due', margin + 2 * colWidth + colWidth / 2, summaryY, 10, { color: '#6b7280', align: 'center' })
-    ctx.text(formatCurrency(balanceDue), margin + 2 * colWidth + colWidth / 2, summaryY - 18, 16, { color: '#dc2626', align: 'center' })
+    const hdrH = 20
+    ctx.rect(margin, y - hdrH, cw, hdrH, '#f3f4f6')
+    const hY = y - hdrH + 6
+    ctx.text('Invoice #', margin + 5, hY, 9, { color: '#6b7280' })
+    ctx.text('Date', margin + 100, hY, 9, { color: '#6b7280' })
+    ctx.text('Due Date', margin + 190, hY, 9, { color: '#6b7280' })
+    textRight(ctx, 'Amount', right - 80, hY, 9, '#6b7280')
+    textRight(ctx, 'Status', right - 5, hY, 9, '#6b7280')
+    y -= hdrH + 4
 
-    y -= 70
-
-    // Invoices section
-    ctx.text('Invoices', margin, y, 14, { color: '#1f2937' })
-    y -= 25
-
-    // Table header
-    ctx.rect(margin, y - 2, pageWidth - 2 * margin, 20, '#f3f4f6')
-    ctx.text('Invoice #', margin + 5, y + 12, 10, { color: '#6b7280' })
-    ctx.text('Date', margin + 100, y + 12, 10, { color: '#6b7280' })
-    ctx.text('Due Date', margin + 190, y + 12, 10, { color: '#6b7280' })
-    ctx.text('Amount', pageWidth - margin - 100, y + 12, 10, { color: '#6b7280', align: 'right' })
-    ctx.text('Status', pageWidth - margin - 5, y + 12, 10, { color: '#6b7280', align: 'right' })
-    y -= 25
-
-    // Invoice rows
     if (invoices.length === 0) {
-      ctx.text('No invoices', margin + 5, y, 10, { color: '#6b7280' })
-      y -= 20
+      ctx.text('No invoices', margin + 5, y, 9, { color: '#6b7280' })
+      y -= 18
     } else {
-      invoices.forEach((invoice) => {
-        ctx.text(invoice.invoice_number, margin + 5, y, 10, { color: '#374151' })
-        ctx.text(formatDate(invoice.date), margin + 100, y, 10, { color: '#374151' })
-        ctx.text(invoice.due_date ? formatDate(invoice.due_date) : '-', margin + 190, y, 10, {
-          color: '#374151'
-        })
-        ctx.text(formatCurrency(invoice.total), pageWidth - margin - 100, y, 10, {
-          color: '#374151',
-          align: 'right'
-        })
-
-        const statusColor = invoice.status === 'paid' ? '#059669' :
-                           invoice.status === 'sent' ? '#3b82f6' : '#6b7280'
-        ctx.text(invoice.status, pageWidth - margin - 5, y, 9, {
-          color: statusColor,
-          align: 'right'
-        })
-        y -= 20
+      invoices.forEach((inv) => {
+        if (y < 80) return
+        ctx.text(inv.invoice_number, margin + 5, y, 9, { color: '#374151' })
+        ctx.text(formatDate(inv.date), margin + 100, y, 9, { color: '#374151' })
+        ctx.text(inv.due_date ? formatDate(inv.due_date) : '-', margin + 190, y, 9, { color: '#374151' })
+        textRight(ctx, formatCurrency(inv.total), right - 80, y, 9, '#374151')
+        const sc = inv.status === 'paid' ? '#059669' : inv.status === 'sent' ? '#3b82f6' : '#6b7280'
+        textRight(ctx, inv.status, right - 5, y, 8, sc)
+        y -= 18
       })
     }
 
-    y -= 15
+    y -= 12
 
-    // Payment History section
-    ctx.text('Payment History', margin, y, 14, { color: '#1f2937' })
-    y -= 25
+    // ── Payment History ──
+    ctx.text('Payment History', margin, y, 12, { color: '#1f2937' })
+    y -= 20
 
-    // Payment table header
-    ctx.rect(margin, y - 2, pageWidth - 2 * margin, 20, '#f3f4f6')
-    ctx.text('Date', margin + 5, y + 12, 10, { color: '#6b7280' })
-    ctx.text('Method', margin + 100, y + 12, 10, { color: '#6b7280' })
-    ctx.text('Reference', margin + 200, y + 12, 10, { color: '#6b7280' })
-    ctx.text('Amount', pageWidth - margin - 5, y + 12, 10, { color: '#6b7280', align: 'right' })
-    y -= 25
+    ctx.rect(margin, y - hdrH, cw, hdrH, '#f3f4f6')
+    const phY = y - hdrH + 6
+    ctx.text('Date', margin + 5, phY, 9, { color: '#6b7280' })
+    ctx.text('Method', margin + 100, phY, 9, { color: '#6b7280' })
+    ctx.text('Reference', margin + 200, phY, 9, { color: '#6b7280' })
+    textRight(ctx, 'Amount', right - 5, phY, 9, '#6b7280')
+    y -= hdrH + 4
 
-    // Payment rows
     if (payments.length === 0) {
-      ctx.text('No payments', margin + 5, y, 10, { color: '#6b7280' })
-      y -= 20
+      ctx.text('No payments', margin + 5, y, 9, { color: '#6b7280' })
+      y -= 18
     } else {
-      payments.forEach((payment) => {
-        ctx.text(formatDate(payment.date), margin + 5, y, 10, { color: '#374151' })
-        ctx.text(payment.method || '-', margin + 100, y, 10, { color: '#374151' })
-        ctx.text(payment.reference || '-', margin + 200, y, 10, { color: '#374151' })
-        ctx.text(formatCurrency(payment.amount), pageWidth - margin - 5, y, 10, {
-          color: '#2563eb',
-          align: 'right'
-        })
-        y -= 20
+      payments.forEach((p) => {
+        if (y < 60) return
+        ctx.text(formatDate(p.date), margin + 5, y, 9, { color: '#374151' })
+        ctx.text(p.method || '-', margin + 100, y, 9, { color: '#374151' })
+        ctx.text(p.reference || '-', margin + 200, y, 9, { color: '#374151' })
+        textRight(ctx, formatCurrency(p.amount), right - 5, y, 9, '#2563eb')
+        y -= 18
       })
     }
 
-    // Footer
-    const footerY = 40
-    ctx.line(margin, footerY + 10, pageWidth - margin, footerY + 10, '#e5e7eb', 1)
-    ctx.text('Thank you for your business!', pageWidth / 2, footerY, 10, {
-      color: '#6b7280',
-      align: 'center'
-    })
+    // ── Footer ──
+    ctx.line(margin, 52, right, 52, '#e5e7eb', 0.5)
+    textCenter(ctx, 'Thank you for your business!', margin, right, 40, 9, '#6b7280')
   })
 
   return doc.build()
@@ -412,8 +402,6 @@ export function generateStatementPDF(client, invoices, settings, payments = []) 
 
 /**
  * Download PDF file
- * @param {Uint8Array} pdfBytes - PDF data
- * @param {string} filename - Filename for download
  */
 export function downloadPDF(pdfBytes, filename) {
   const blob = new Blob([pdfBytes], { type: 'application/pdf' })
@@ -427,8 +415,6 @@ export function downloadPDF(pdfBytes, filename) {
 
 /**
  * Convert base64 to Uint8Array
- * @param {string} base64 - Base64 string
- * @returns {Uint8Array}
  */
 function base64ToUint8Array(base64) {
   const binaryString = atob(base64)

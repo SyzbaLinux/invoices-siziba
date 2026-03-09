@@ -34,7 +34,7 @@ async function handleLogin() {
         <p class="mt-2 text-gray-500">Sign in to continue</p>
       </div>
 
-      <form @submit.prevent="handleLogin" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-5">
+      <form @submit.prevent="handleLogin" class="bg-white rounded-sm shadow-sm border border-gray-200 p-6 space-y-5">
         <div>
           <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
           <input
@@ -44,7 +44,7 @@ async function handleLogin() {
             inputmode="numeric"
             required
             placeholder="Enter phone number"
-            class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            class="w-full rounded-sm border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 
@@ -57,18 +57,18 @@ async function handleLogin() {
             inputmode="numeric"
             required
             placeholder="Enter PIN"
-            class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            class="w-full rounded-sm border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 
-        <div v-if="error" class="bg-red-50 border border-red-200 rounded-md p-3">
+        <div v-if="error" class="bg-red-50 border border-red-200 rounded-sm p-3">
           <p class="text-sm text-red-800">{{ error }}</p>
         </div>
 
         <button
           type="submit"
           :disabled="loading"
-          class="w-full bg-blue-600 text-white rounded-md py-2 text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+          class="w-full bg-blue-600 text-white rounded-sm py-2 text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
         >
           {{ loading ? 'Signing in...' : 'Sign In' }}
         </button>

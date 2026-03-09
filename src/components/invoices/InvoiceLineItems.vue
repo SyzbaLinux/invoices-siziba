@@ -51,7 +51,7 @@ function getLineTotal(item) {
       <div
         v-for="(item, index) in items"
         :key="index"
-        class="bg-gray-50 rounded-lg p-4 space-y-3"
+        class="bg-gray-50 rounded-sm p-4 space-y-3"
       >
         <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
           <div class="md:col-span-5">
@@ -87,7 +87,7 @@ function getLineTotal(item) {
 
           <div class="md:col-span-2">
             <label class="block text-sm font-medium text-gray-700 mb-1">Total</label>
-            <div class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900">
+            <div class="px-4 py-2 bg-white border border-gray-300 rounded-sm text-gray-900">
               {{ formatCurrency(getLineTotal(item)) }}
             </div>
           </div>

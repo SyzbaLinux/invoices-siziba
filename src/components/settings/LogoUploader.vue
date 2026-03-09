@@ -70,7 +70,7 @@ function removeLogo() {
 
     <div v-if="logo" class="flex items-start gap-4">
       <div class="flex-shrink-0">
-        <img :src="logo" alt="Company Logo" class="h-24 w-24 object-contain border rounded-lg" />
+        <img :src="logo" alt="Company Logo" class="h-24 w-24 object-contain border rounded-sm" />
       </div>
       <div class="flex flex-col gap-2">
         <BaseButton variant="secondary" size="sm" @click="triggerFileInput">
@@ -82,7 +82,7 @@ function removeLogo() {
       </div>
     </div>
 
-    <div v-else class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+    <div v-else class="border-2 border-dashed border-gray-300 rounded-sm p-8 text-center">
       <svg
         class="mx-auto h-12 w-12 text-gray-400"
         stroke="currentColor"

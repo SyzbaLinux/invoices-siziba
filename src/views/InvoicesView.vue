@@ -71,7 +71,7 @@ async function duplicateInvoice(invoice) {
 
     <LoadingSpinner v-if="invoicesStore.loading && invoicesStore.invoices.length === 0" text="Loading invoices..." />
 
-    <div v-else-if="invoicesStore.error" class="bg-red-50 border border-red-200 rounded-lg p-4">
+    <div v-else-if="invoicesStore.error" class="bg-red-50 border border-red-200 rounded-sm p-4">
       <p class="text-sm text-red-800">{{ invoicesStore.error }}</p>
     </div>
 

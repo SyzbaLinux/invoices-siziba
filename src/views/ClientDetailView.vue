@@ -65,9 +65,9 @@ function viewStatement() {
   router.push(`/statements/${client.value.id}`)
 }
 
-function downloadStatement() {
+async function downloadStatement() {
   try {
-    const pdfBytes = generateStatementPDF(
+    const pdfBytes = await generateStatementPDF(
       client.value,
       clientInvoices.value,
       settingsStore.settings
@@ -117,7 +117,7 @@ function downloadStatement() {
         <ClientCard :client="client" />
 
         <div class="lg:col-span-2 space-y-6">
-          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div class="bg-white rounded-sm shadow-sm border border-gray-200 p-6">
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="text-sm font-medium text-gray-500">Total Invoices</label>
@@ -130,7 +130,7 @@ function downloadStatement() {
             </div>
           </div>
 
-          <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div class="bg-white rounded-sm shadow-sm border border-gray-200">
             <div class="px-6 py-4 border-b border-gray-200">
               <h3 class="text-lg font-semibold text-gray-900">Invoices</h3>
             </div>
@@ -153,7 +153,7 @@ function downloadStatement() {
                     <p class="font-medium text-gray-900">{{ formatCurrency(invoice.total) }}</p>
                     <span
                       :class="[
-                        'inline-block px-2 py-1 text-xs rounded-full',
+                        'inline-block px-2 py-1 text-xs rounded-sm',
                         invoice.status === 'paid' ? 'bg-primary-100 text-primary-800' :
                         invoice.status === 'sent' ? 'bg-blue-100 text-blue-800' :
                         invoice.status === 'overdue' ? 'bg-red-100 text-red-800' :

@@ -99,7 +99,7 @@ async function handleSubmit() {
       </div>
 
       <form @submit.prevent="handleSubmit" class="space-y-6">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4">
+        <div class="bg-white rounded-sm shadow-sm border border-gray-200 p-6 space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <BaseSelect
               v-model="formData.client_id"
@@ -143,11 +143,11 @@ async function handleSubmit() {
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="bg-white rounded-sm shadow-sm border border-gray-200 p-6">
           <InvoiceLineItems :items="formData.items" @update:items="formData.items = $event" />
         </div>
 
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="bg-white rounded-sm shadow-sm border border-gray-200 p-6">
           <div class="max-w-md ml-auto space-y-3">
             <div class="flex justify-between text-sm">
               <span class="text-gray-600">Subtotal:</span>
@@ -164,12 +164,12 @@ async function handleSubmit() {
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="bg-white rounded-sm shadow-sm border border-gray-200 p-6">
           <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
           <textarea
             v-model="formData.notes"
             rows="4"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            class="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             placeholder="Additional notes or payment instructions..."
           ></textarea>
         </div>

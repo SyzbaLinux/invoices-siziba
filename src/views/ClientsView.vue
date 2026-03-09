@@ -89,7 +89,7 @@ function viewClient(client) {
 
     <LoadingSpinner v-if="clientsStore.loading && clientsStore.clients.length === 0" text="Loading clients..." />
 
-    <div v-else-if="clientsStore.error" class="bg-red-50 border border-red-200 rounded-lg p-4">
+    <div v-else-if="clientsStore.error" class="bg-red-50 border border-red-200 rounded-sm p-4">
       <p class="text-sm text-red-800">{{ clientsStore.error }}</p>
     </div>
 

@@ -130,7 +130,7 @@ async function handleImport(event) {
     <LoadingSpinner v-if="settingsStore.loading && !formData.id" text="Loading settings..." />
 
     <div v-else class="space-y-8">
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div class="bg-white rounded-sm shadow-sm border border-gray-200 p-6">
         <LogoUploader
           :logo="formData.logo"
           @update:logo="handleLogoUpdate"
@@ -138,22 +138,22 @@ async function handleImport(event) {
         />
       </div>
 
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div class="bg-white rounded-sm shadow-sm border border-gray-200 p-6">
         <CompanyInfoForm :model-value="formData" @update:model-value="handleFormUpdate" />
       </div>
 
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div class="bg-white rounded-sm shadow-sm border border-gray-200 p-6">
         <DefaultsForm :model-value="formData" @update:model-value="handleFormUpdate" />
       </div>
 
       <!-- Data Export / Import -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div class="bg-white rounded-sm shadow-sm border border-gray-200 p-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-1">Data Export &amp; Import</h2>
         <p class="text-sm text-gray-500 mb-4">
           Transfer your data between devices by exporting a backup file and importing it elsewhere.
         </p>
 
-        <div v-if="dataMessage" class="mb-4 rounded-lg p-3 text-sm" :class="dataMessageType === 'error' ? 'bg-red-50 border border-red-200 text-red-800' : 'bg-green-50 border border-green-200 text-green-800'">
+        <div v-if="dataMessage" class="mb-4 rounded-sm p-3 text-sm" :class="dataMessageType === 'error' ? 'bg-red-50 border border-red-200 text-red-800' : 'bg-green-50 border border-green-200 text-green-800'">
           {{ dataMessage }}
         </div>
 
@@ -174,11 +174,11 @@ async function handleImport(event) {
         </div>
       </div>
 
-      <div v-if="settingsStore.error" class="bg-red-50 border border-red-200 rounded-lg p-4">
+      <div v-if="settingsStore.error" class="bg-red-50 border border-red-200 rounded-sm p-4">
         <p class="text-sm text-red-800">{{ settingsStore.error }}</p>
       </div>
 
-      <div v-if="successMessage" class="bg-green-50 border border-green-200 rounded-lg p-4">
+      <div v-if="successMessage" class="bg-green-50 border border-green-200 rounded-sm p-4">
         <p class="text-sm text-green-800">{{ successMessage }}</p>
       </div>
 

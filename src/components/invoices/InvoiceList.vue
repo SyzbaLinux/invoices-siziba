@@ -50,7 +50,7 @@ function getClientName(clientId) {
       />
     </div>
 
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <div class="bg-white rounded-sm shadow-sm border border-gray-200 overflow-hidden">
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
@@ -101,28 +101,28 @@ function getClientName(clientId) {
               <InvoiceStatusBadge :status="invoice.status" />
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-              <div class="flex gap-2 justify-end">
+              <div class="flex gap-1.5 justify-end">
                 <button
                   @click="emit('view', invoice)"
-                  class="text-primary-600 hover:text-primary-900"
+                  class="px-2.5 py-1 text-xs font-medium rounded-sm bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors"
                 >
                   View
                 </button>
                 <button
                   @click="emit('edit', invoice)"
-                  class="text-blue-600 hover:text-blue-900"
+                  class="px-2.5 py-1 text-xs font-medium rounded-sm bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
                 >
                   Edit
                 </button>
                 <button
                   @click="emit('duplicate', invoice)"
-                  class="text-gray-600 hover:text-gray-900"
+                  class="px-2.5 py-1 text-xs font-medium rounded-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
                 >
                   Duplicate
                 </button>
                 <button
                   @click="emit('delete', invoice)"
-                  class="text-red-600 hover:text-red-900"
+                  class="px-2.5 py-1 text-xs font-medium rounded-sm bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
                 >
                   Delete
                 </button>

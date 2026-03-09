@@ -172,7 +172,7 @@ async function downloadStatement() {
             <p style="font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">To</p>
             <div class="flex gap-4">
               <div v-if="client.logo" class="flex-shrink-0">
-                <img :src="client.logo" alt="Client Logo" style="height: 3rem; width: 3rem; object-fit: contain; border-radius: 0.25rem;" />
+                <img :src="client.logo" alt="Client Logo" style="height: 3rem; width: 3rem; object-fit: contain; border-radius: 2px;" />
               </div>
               <div style="display: flex; flex-direction: column; gap: 0.25rem;">
                 <p style="font-size: 1.125rem; font-weight: 700; color: #1e293b;">{{ client.name }}</p>
@@ -190,17 +190,17 @@ async function downloadStatement() {
         <!-- Summary Cards -->
         <div style="padding: 1rem 1.5rem;">
           <div class="grid grid-cols-3 gap-4">
-            <div style="background: #f8fafc; border-radius: 0.5rem; padding: 0.75rem 1rem; border: 1px solid #e2e8f0;">
+            <div style="background: #f8fafc; border-radius: 2px; padding: 0.75rem 1rem; border: 1px solid #e2e8f0;">
               <p style="font-size: 0.75rem; font-weight: 500; color: #64748b;">Total Invoiced</p>
               <p style="font-size: 1.25rem; font-weight: 700; color: #1e293b;">{{ formatCurrency(totalInvoiced) }}</p>
             </div>
-            <div style="background: #ecfdf5; border-radius: 0.5rem; padding: 0.75rem 1rem; border: 1px solid #a7f3d0;">
+            <div style="background: #ecfdf5; border-radius: 2px; padding: 0.75rem 1rem; border: 1px solid #a7f3d0;">
               <p style="font-size: 0.75rem; font-weight: 500; color: #059669;">Total Paid</p>
               <p style="font-size: 1.25rem; font-weight: 700; color: #047857;">{{ formatCurrency(totalPaid) }}</p>
             </div>
             <div :style="{
               background: totalOutstanding > 0 ? '#fef2f2' : '#ecfdf5',
-              borderRadius: '0.5rem',
+              borderRadius: '2px',
               padding: '0.75rem 1rem',
               border: totalOutstanding > 0 ? '1px solid #fecaca' : '1px solid #a7f3d0'
             }">
@@ -216,12 +216,12 @@ async function downloadStatement() {
             Invoices
           </h3>
 
-          <div v-if="clientInvoices.length === 0" style="padding: 2rem; text-align: center; color: #94a3b8; background: #f8fafc; border-radius: 0.5rem;">
+          <div v-if="clientInvoices.length === 0" style="padding: 2rem; text-align: center; color: #94a3b8; background: #f8fafc; border-radius: 2px;">
             No invoices found
           </div>
 
           <!-- Invoice Cards -->
-          <div v-for="invoice in clientInvoices" :key="invoice.id" style="margin-bottom: 1rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; overflow: hidden;">
+          <div v-for="invoice in clientInvoices" :key="invoice.id" style="margin-bottom: 1rem; border: 1px solid #e2e8f0; border-radius: 2px; overflow: hidden;">
             <!-- Invoice Header Row -->
             <div style="background: #f8fafc; padding: 0.5rem 0.75rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0;">
               <div style="display: flex; align-items: center; gap: 1rem;">
@@ -243,7 +243,7 @@ async function downloadStatement() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   padding: '0.125rem 0.5rem',
-                  borderRadius: '9999px',
+                  borderRadius: '2px',
                   fontSize: '0.625rem',
                   fontWeight: '600',
                   background: getStatusStyle(invoice.status).background,
@@ -301,7 +301,7 @@ async function downloadStatement() {
           <h3 style="font-size: 0.875rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;">
             Payment History
           </h3>
-          <div style="overflow: hidden; border-radius: 0.375rem; border: 1px solid #e2e8f0;">
+          <div style="overflow: hidden; border-radius: 2px; border: 1px solid #e2e8f0;">
             <table style="min-width: 100%; border-collapse: collapse;">
               <thead style="background: #f8fafc;">
                 <tr>

@@ -29,9 +29,9 @@ const sizeClasses = {
   <Transition name="modal">
     <div v-if="show" class="fixed inset-0 z-50 overflow-y-auto" @click.self="emit('close')">
       <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"></div>
+        <div class="fixed inset-0 bg-black/50 transition-opacity"></div>
 
-        <div :class="['relative bg-white rounded-lg shadow-xl w-full', sizeClasses[size]]">
+        <div :class="['relative bg-white rounded-sm shadow-xl w-full', sizeClasses[size]]">
           <div class="flex items-center justify-between p-6 border-b border-gray-200">
             <h3 class="text-xl font-semibold text-gray-900">{{ title }}</h3>
             <button
@@ -56,7 +56,7 @@ const sizeClasses = {
 
           <div
             v-if="$slots.footer"
-            class="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg"
+            class="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-sm"
           >
             <slot name="footer" />
           </div>

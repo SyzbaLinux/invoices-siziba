@@ -41,7 +41,7 @@ const sizeClasses = {
     :type="type"
     :disabled="disabled"
     :class="[
-      'rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2',
+      'inline-flex items-center justify-center rounded-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2',
       variantClasses[variant],
       sizeClasses[size],
       disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',

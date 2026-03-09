@@ -28,7 +28,7 @@ const getColorClasses = (color) => {
 <template>
   <span
     :class="[
-      'inline-block px-3 py-1 text-sm font-medium rounded-full',
+      'inline-block px-2.5 py-0.5 text-xs font-semibold rounded-sm uppercase tracking-wide',
       getColorClasses(statusConfig[status]?.color),
     ]"
   >
