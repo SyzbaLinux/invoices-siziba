@@ -109,3 +109,43 @@ export async function clearStore(storeName) {
   const db = await getDB()
   return await db.clear(storeName)
 }
+
+// Export all data from all stores as JSON
+export async function exportAllData() {
+  const db = await getDB()
+  const storeNames = ['clients', 'invoices', 'payments', 'settings']
+  const data = {}
+
+  for (const storeName of storeNames) {
+    data[storeName] = await db.getAll(storeName)
+  }
+
+  return {
+    exportedAt: new Date().toISOString(),
+    version: DB_VERSION,
+    data,
+  }
+}
+
+// Import data from a JSON export, replacing all existing data
+export async function importAllData(exportObj) {
+  if (!exportObj || !exportObj.data) {
+    throw new Error('Invalid import file format')
+  }
+
+  const db = await getDB()
+  const storeNames = ['clients', 'invoices', 'payments', 'settings']
+
+  const tx = db.transaction(storeNames, 'readwrite')
+
+  for (const storeName of storeNames) {
+    if (exportObj.data[storeName]) {
+      await tx.objectStore(storeName).clear()
+      for (const record of exportObj.data[storeName]) {
+        await tx.objectStore(storeName).put(record)
+      }
+    }
+  }
+
+  await tx.done
+}
